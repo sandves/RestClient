@@ -9,7 +9,7 @@ using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Web.Http;
 
-namespace IN.ServiceLayer.BPM.Repositories
+namespace Hest.RestClient
 {
     public class RestClient : IRestClient
     {
@@ -53,17 +53,17 @@ namespace IN.ServiceLayer.BPM.Repositories
         public RestClient(ILogger logger)
         {
             this.logger = logger;
-            initializeClient();
+            InitializeClient();
         }
 
         public RestClient(ILogger logger, Policy policy)
         {
             this.logger = logger;
             Policy = policy;
-            initializeClient();
+            InitializeClient();
         }
 
-        private void initializeClient()
+        private void InitializeClient()
         {
             Client = new HttpClient(new HttpClientHandler { Credentials = CredentialCache.DefaultNetworkCredentials });
             Client.DefaultRequestHeaders.Accept.Clear();
@@ -75,13 +75,21 @@ namespace IN.ServiceLayer.BPM.Repositories
             Policy = DefaultPolicy;
         }
 
-        public async Task<TResult> GetAsync<TResult>(string url, params string[] parameters)
+        public async Task<RestResponse<TResult>> GetAsync<TResult>(string url, params string[] parameters)
         {
             var requestUri = string.Format(url, parameters);
             var response = await ExecuteAsync(() => GetAsync(requestUri));
+
             if (response.StatusCode == HttpStatusCode.NotFound)
-                return default(TResult);
-            return await ReadAsAsync<TResult>(response);
+                return new RestResponse<TResult> { Data = default(TResult) };
+
+            var content = await ReadAsAsync<TResult>(response);
+            return new RestResponse<TResult>
+            {
+                Data = content,
+                StatusCode = response.StatusCode,
+                Headers = response.Headers
+            };
         }
 
         public TResult Get<TResult>(string url, params string[] parameters)

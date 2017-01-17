@@ -4,7 +4,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Polly;
 
-namespace IN.ServiceLayer.BPM.Repositories
+namespace Hest.RestClient
 {
     public interface IRestClient
     {
@@ -18,7 +18,7 @@ namespace IN.ServiceLayer.BPM.Repositories
         void Dispose();
         void EnableDefaultPolicy();
         TResult Get<TResult>(string url, params string[] parameters);
-        Task<TResult> GetAsync<TResult>(string url, params string[] parameters);
+        Task<RestResponse<TResult>> GetAsync<TResult>(string url, params string[] parameters);
         Stream GetStream(string url, params string[] parameters);
         Task<Stream> GetStreamAsync(string url, params string[] parameters);
         TResult Post<TResult>(string url, object body);
