@@ -250,3 +250,5 @@ paket-files/
 # JetBrains Rider
 .idea/
 *.sln.iml
+/Hest.RestClient/Hest.RestClient/nuget/lib/net452
+*.exe

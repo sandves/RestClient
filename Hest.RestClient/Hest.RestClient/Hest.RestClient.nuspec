@@ -1,0 +1,21 @@
+﻿<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Hest.RestClient</id>
+    <version>1.2.0</version>
+    <title>Hest.RestClient</title>
+    <authors>Heine Furubotten, Stian Sandve</authors>
+    <owners>Heine Furubotten, Stian Sandve</owners>
+    <licenseUrl>https://opensource.org/licenses/MIT</licenseUrl>
+    <projectUrl>https://github.com/sandves/RestClient</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Http / Rest client with support for policies for Retry, Circuit Breaker, Timeout, Bulkhead Isolation and Fallback from Polly. </description>
+    <copyright>Copyright 2017</copyright>
+    <dependencies>
+      <dependency id="Polly" version="5.0.3" />
+      <dependency id="Microsoft.AspNet.WebApi.Client" version="5.2.3" />
+      <dependency id="Microsoft.AspNet.WebApi.Core" version="5.2.3" />
+      <dependency id="Newtonsoft.Json" version="9.0.1" />
+    </dependencies>
+  </metadata>
+</package>

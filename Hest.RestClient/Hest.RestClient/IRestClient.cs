@@ -1,21 +1,16 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Net;
+﻿using System.IO;
 using System.Threading.Tasks;
 using Polly;
+using System;
 
-namespace IN.ServiceLayer.BPM.Repositories
+namespace Hest.RestClient
 {
-    public interface IRestClient
+    public interface IRestClient : IDisposable
     {
-        Policy DefaultPolicy { get; }
-        List<HttpStatusCode> HttpStatusCodesThatShouldNotBeRetried { get; set; }
-        List<HttpStatusCode> HttpStatusCodesWorthRetrying { get; set; }
         Policy Policy { get; set; }
 
         TResult Delete<TResult>(string url, params string[] parameters);
         Task<TResult> DeleteAsync<TResult>(string url, params string[] parameters);
-        void Dispose();
         void EnableDefaultPolicy();
         TResult Get<TResult>(string url, params string[] parameters);
         Task<TResult> GetAsync<TResult>(string url, params string[] parameters);

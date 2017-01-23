@@ -1,4 +1,4 @@
-﻿using NLog;
+﻿using Newtonsoft.Json;
 using Polly;
 using System;
 using System.Collections.Generic;
@@ -9,56 +9,20 @@ using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Web.Http;
 
-namespace IN.ServiceLayer.BPM.Repositories
+namespace Hest.RestClient
 {
     public class RestClient : IRestClient
     {
-        private ILogger logger;
-
-        public Policy DefaultPolicy
-        {
-            get
-            {
-                return Policy
-                    .Handle<WebException>()
-                    .Or<HttpResponseException>(e => !HttpStatusCodesThatShouldNotBeRetried.Contains(e.Response.StatusCode))
-                    .WaitAndRetryAsync(
-                        retryCount: 4,
-                        sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                        onRetry: (exception, timespan, context) =>
-                        {
-                            logger.Error(exception, "Retrying HTTP request after {0} ms", timespan.TotalMilliseconds);
-                        }
-                    );
-            }
-        }
-
         public HttpClient Client;
         public Policy Policy { get; set; }
-        public List<HttpStatusCode> HttpStatusCodesWorthRetrying { get; set; } = new List<HttpStatusCode> {
-            HttpStatusCode.RequestTimeout,
-            HttpStatusCode.InternalServerError,
-            HttpStatusCode.BadGateway,
-            HttpStatusCode.ServiceUnavailable,
-            HttpStatusCode.GatewayTimeout
-        };
-
-        public List<HttpStatusCode> HttpStatusCodesThatShouldNotBeRetried { get; set; } = new List<HttpStatusCode>
+        
+        public RestClient()
         {
-            HttpStatusCode.BadRequest,
-            HttpStatusCode.NotFound,
-            HttpStatusCode.Unauthorized
-        };
-
-        public RestClient(ILogger logger)
-        {
-            this.logger = logger;
             initializeClient();
         }
 
-        public RestClient(ILogger logger, Policy policy)
+        public RestClient(Policy policy)
         {
-            this.logger = logger;
             Policy = policy;
             initializeClient();
         }
@@ -72,7 +36,7 @@ namespace IN.ServiceLayer.BPM.Repositories
 
         public void EnableDefaultPolicy()
         {
-            Policy = DefaultPolicy;
+            Policy = PolicyFactory.GetDefaultPolicy();
         }
 
         public async Task<TResult> GetAsync<TResult>(string url, params string[] parameters)
@@ -162,21 +126,6 @@ namespace IN.ServiceLayer.BPM.Repositories
             GC.SuppressFinalize(this);
         }
 
-        private static async Task<TResult> ReadAsAsync<TResult>(HttpResponseMessage response)
-        {
-            var result = default(TResult);
-            if (response.IsSuccessStatusCode)
-            {
-                result = await response.Content.ReadAsAsync<TResult>();
-            }
-            return result;
-        }
-
-        private static TResult ReadAs<TResult>(HttpResponseMessage response)
-        {
-            return ReadAsAsync<TResult>(response).Result;
-        }
-
         private async Task<HttpResponseMessage> GetAsync(string requestUri)
         {
             var response = await Client.GetAsync(requestUri).ConfigureAwait(false);
@@ -205,6 +154,24 @@ namespace IN.ServiceLayer.BPM.Repositories
             var response = await Client.PutAsJsonAsync(requestUri, body);
             response.EnsureSuccessStatusCode();
             return response;
+        }
+
+        private static async Task<TResult> ReadAsAsync<TResult>(HttpResponseMessage response)
+        {
+            var result = default(TResult);
+            if (response.IsSuccessStatusCode)
+            {
+                result = await response.Content.ReadAsStringAsync().ContinueWith((task) =>
+                {
+                    return JsonConvert.DeserializeObject<TResult>(task.Result);
+                });
+            }
+            return result;
+        }
+
+        private static TResult ReadAs<TResult>(HttpResponseMessage response)
+        {
+            return ReadAsAsync<TResult>(response).Result;
         }
 
         private async Task<HttpResponseMessage> ExecuteAsync(Func<Task<HttpResponseMessage>> function)
