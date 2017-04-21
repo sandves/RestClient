@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>Hest.RestClient</id>
-    <version>1.2.0</version>
+    <version>1.3.4</version>
     <title>Hest.RestClient</title>
     <authors>Heine Furubotten, Stian Sandve</authors>
     <owners>Heine Furubotten, Stian Sandve</owners>

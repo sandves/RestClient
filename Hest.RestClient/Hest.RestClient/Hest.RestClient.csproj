@@ -55,7 +55,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DefaultFactory.cs" />
+    <Compile Include="HttpClientExtensions.cs" />
+    <Compile Include="HttpResponseMessageExtensions.cs" />
     <Compile Include="IRestClient.cs" />
+    <Compile Include="Response.cs" />
     <Compile Include="RestClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

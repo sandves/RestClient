@@ -1,45 +1,40 @@
-﻿using Newtonsoft.Json;
-using Polly;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Formatting;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
-using System.Web.Http;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using Polly;
 
 namespace Hest.RestClient
 {
     public class RestClient : IRestClient
     {
-        public HttpClient Client;
-        public Policy Policy { get; set; }
-        
         public RestClient()
         {
-            initializeClient();
+            InitializeClient();
         }
 
         public RestClient(Policy policy)
         {
             Policy = policy;
-            initializeClient();
+            InitializeClient();
         }
 
-        private void initializeClient()
-        {
-            Client = new HttpClient(new HttpClientHandler { Credentials = CredentialCache.DefaultNetworkCredentials });
-            Client.DefaultRequestHeaders.Accept.Clear();
-            Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        }
+        public HttpClient Client { get; set; }
+        public Policy Policy { get; set; }
+
+        public MediaTypeFormatter Formatter { get; set; }
 
         public void EnableDefaultPolicy()
         {
             Policy = PolicyFactory.GetDefaultPolicy();
         }
 
-        public async Task<TResult> GetAsync<TResult>(string url, params string[] parameters)
+        public async Task<TResult> GetAsync<TResult>(string url, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
             var response = await ExecuteAsync(() => GetAsync(requestUri));
@@ -48,15 +43,14 @@ namespace Hest.RestClient
             return await ReadAsAsync<TResult>(response);
         }
 
-        public TResult Get<TResult>(string url, params string[] parameters)
+        public TResult Get<TResult>(string url, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
-            HttpResponseMessage response = null;
-            response = Execute(() => GetAsync(requestUri)).Result;
+            var response = Execute(() => GetAsync(requestUri)).Result;
             return ReadAs<TResult>(response);
         }
 
-        public async Task<TResult> PostAsync<TResult>(string url, object body, params string[] parameters)
+        public async Task<TResult> PostAsync<TResult>(string url, object body, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
             return await PostAsync<TResult>(requestUri, body);
@@ -68,7 +62,16 @@ namespace Hest.RestClient
             return await ReadAsAsync<TResult>(response);
         }
 
-        public TResult Post<TResult>(string url, object body, params string[] parameters)
+        public async Task<Stream> PostAndReadAsStreamAsync(string url, object body)
+        {
+            var response = await ExecuteAsync(() => PostAsync(url, body));
+            var result = default(Stream);
+            if (response.IsSuccessStatusCode)
+                result = await response.Content.ReadAsStreamAsync();
+            return result;
+        }
+
+        public TResult Post<TResult>(string url, object body, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
             return Post<TResult>(requestUri, body);
@@ -80,41 +83,55 @@ namespace Hest.RestClient
             return ReadAs<TResult>(response);
         }
 
-        public TResult Delete<TResult>(string url, params string[] parameters)
+        public TResult Delete<TResult>(string url, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
             var response = Execute(() => DeleteAsync(requestUri)).Result;
             return ReadAs<TResult>(response);
         }
 
-        public async Task<TResult> DeleteAsync<TResult>(string url, params string[] parameters)
+        public async Task<TResult> DeleteAsync<TResult>(string url, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
             var response = await ExecuteAsync(() => DeleteAsync(requestUri));
             return await ReadAsAsync<TResult>(response);
         }
 
-        public async Task<TResult> PutAsync<TResult>(string url, object body, params string[] parameters)
+        public async Task<TResult> PutAsync<TResult>(string url, object body, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
             var response = await ExecuteAsync(() => PutAsync(requestUri, body));
             return await ReadAsAsync<TResult>(response);
         }
 
-        public TResult Put<TResult>(string url, object body, params string[] parameters)
+        public TResult Put<TResult>(string url, object body, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
             var response = Execute(() => PutAsync(requestUri, body)).Result;
             return ReadAs<TResult>(response);
         }
 
-        public async Task<Stream> GetStreamAsync(string url, params string[] parameters)
+        public TResult Patch<TResult>(string url, object body, params object[] parameters)
+        {
+            var requestUri = string.Format(url, parameters);
+            var response = Execute(() => PatchAsync(requestUri, body)).Result;
+            return ReadAs<TResult>(response);
+        }
+
+        public async Task<TResult> PatchAsync<TResult>(string url, object body, params object[] parameters)
+        {
+            var requestUri = string.Format(url, parameters);
+            var response = await ExecuteAsync(() => PatchAsync(requestUri, body));
+            return await ReadAsAsync<TResult>(response);
+        }
+
+        public async Task<Stream> GetStreamAsync(string url, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
             return await Client.GetStreamAsync(requestUri);
         }
 
-        public Stream GetStream(string url, params string[] parameters)
+        public Stream GetStream(string url, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
             return Client.GetStreamAsync(requestUri).Result;
@@ -126,33 +143,56 @@ namespace Hest.RestClient
             GC.SuppressFinalize(this);
         }
 
+        private void InitializeClient()
+        {
+            Client = new HttpClient(new HttpClientHandler {Credentials = CredentialCache.DefaultNetworkCredentials});
+            Client.DefaultRequestHeaders.Accept.Clear();
+            Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            Formatter = new JsonMediaTypeFormatter
+            {
+                SerializerSettings = new JsonSerializerSettings
+                {
+                    Formatting = Formatting.Indented,
+                    ContractResolver = new DefaultContractResolver()
+                }
+            };
+        }
+
         private async Task<HttpResponseMessage> GetAsync(string requestUri)
         {
             var response = await Client.GetAsync(requestUri).ConfigureAwait(false);
             if (response.StatusCode == HttpStatusCode.NotFound)
                 return response;
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessStatusCodeAsync();
             return response;
         }
 
         private async Task<HttpResponseMessage> PostAsync(string requestUri, object body)
         {
-            var response = await Client.PostAsJsonAsync(requestUri, body).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
+            var response = await Client.PostAsync(requestUri, body, Formatter).ConfigureAwait(false);
+            await response.EnsureSuccessStatusCodeAsync();
             return response;
         }
 
         private async Task<HttpResponseMessage> DeleteAsync(string requestUri)
         {
             var response = await Client.DeleteAsync(requestUri);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessStatusCodeAsync();
             return response;
         }
 
         private async Task<HttpResponseMessage> PutAsync(string requestUri, object body)
         {
-            var response = await Client.PutAsJsonAsync(requestUri, body);
-            response.EnsureSuccessStatusCode();
+            var response = await Client.PutAsync(requestUri, body, Formatter);
+            await response.EnsureSuccessStatusCodeAsync();
+            return response;
+        }
+
+        private async Task<HttpResponseMessage> PatchAsync(string requestUri, object body)
+        {
+            var response = await Client.PatchAsync(requestUri, body, Formatter);
+            await response.EnsureSuccessStatusCodeAsync();
             return response;
         }
 
@@ -160,12 +200,9 @@ namespace Hest.RestClient
         {
             var result = default(TResult);
             if (response.IsSuccessStatusCode)
-            {
-                result = await response.Content.ReadAsStringAsync().ContinueWith((task) =>
-                {
-                    return JsonConvert.DeserializeObject<TResult>(task.Result);
-                });
-            }
+                result = await response.Content
+                    .ReadAsStringAsync()
+                    .ContinueWith(task => JsonConvert.DeserializeObject<TResult>(task.Result));
             return result;
         }
 
@@ -174,20 +211,16 @@ namespace Hest.RestClient
             return ReadAsAsync<TResult>(response).Result;
         }
 
-        private async Task<HttpResponseMessage> ExecuteAsync(Func<Task<HttpResponseMessage>> function)
+        private async Task<T> ExecuteAsync<T>(Func<Task<T>> function)
         {
             if (Policy == null)
-                return await function?.Invoke();
-            else
-                return await Policy.ExecuteAsync(() => function?.Invoke());
+                return await function.Invoke();
+            return await Policy.ExecuteAsync(function.Invoke);
         }
 
-        private Task<HttpResponseMessage> Execute(Func<Task<HttpResponseMessage>> function)
+        private T Execute<T>(Func<T> function)
         {
-            if (Policy == null)
-                return function?.Invoke();
-            else
-                return Policy.Execute(() => function?.Invoke());
+            return Policy == null ? function.Invoke() : Policy.Execute(function.Invoke);
         }
     }
 }
