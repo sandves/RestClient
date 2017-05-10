@@ -54,16 +54,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DefaultFactory.cs" />
+    <Compile Include="PolicyFactory.cs" />
     <Compile Include="HttpClientExtensions.cs" />
     <Compile Include="HttpResponseMessageExtensions.cs" />
     <Compile Include="IRestClient.cs" />
     <Compile Include="Response.cs" />
     <Compile Include="RestClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SimpleHttpResponseException.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Hest.RestClient.nuspec" />
+    <None Include="Hest.RestClient.nuspec">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="nuget_pack.bat" />
     <None Include="packages.config" />
   </ItemGroup>
