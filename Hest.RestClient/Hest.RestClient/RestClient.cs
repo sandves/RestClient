@@ -37,10 +37,10 @@ namespace Hest.RestClient
         public async Task<TResult> GetAsync<TResult>(string url, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
-            var response = await ExecuteAsync(() => GetAsync(requestUri));
+            var response = await ExecuteAsync(() => GetAsync(requestUri)).ConfigureAwait(false);
             if (response.StatusCode == HttpStatusCode.NotFound)
                 return default(TResult);
-            return await ReadAsAsync<TResult>(response);
+            return await ReadAsAsync<TResult>(response).ConfigureAwait(false);
         }
 
         public TResult Get<TResult>(string url, params object[] parameters)
@@ -53,21 +53,21 @@ namespace Hest.RestClient
         public async Task<TResult> PostAsync<TResult>(string url, object body, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
-            return await PostAsync<TResult>(requestUri, body);
+            return await PostAsync<TResult>(requestUri, body).ConfigureAwait(false);
         }
 
         public async Task<TResult> PostAsync<TResult>(string url, object body)
         {
-            var response = await ExecuteAsync(() => PostAsync(url, body));
-            return await ReadAsAsync<TResult>(response);
+            var response = await ExecuteAsync(() => PostAsync(url, body)).ConfigureAwait(false);
+            return await ReadAsAsync<TResult>(response).ConfigureAwait(false);
         }
 
         public async Task<Stream> PostAndReadAsStreamAsync(string url, object body)
         {
-            var response = await ExecuteAsync(() => PostAsync(url, body));
+            var response = await ExecuteAsync(() => PostAsync(url, body)).ConfigureAwait(false);
             var result = default(Stream);
             if (response.IsSuccessStatusCode)
-                result = await response.Content.ReadAsStreamAsync();
+                result = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
             return result;
         }
 
@@ -93,15 +93,15 @@ namespace Hest.RestClient
         public async Task<TResult> DeleteAsync<TResult>(string url, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
-            var response = await ExecuteAsync(() => DeleteAsync(requestUri));
-            return await ReadAsAsync<TResult>(response);
+            var response = await ExecuteAsync(() => DeleteAsync(requestUri)).ConfigureAwait(false);
+            return await ReadAsAsync<TResult>(response).ConfigureAwait(false);
         }
 
         public async Task<TResult> PutAsync<TResult>(string url, object body, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
-            var response = await ExecuteAsync(() => PutAsync(requestUri, body));
-            return await ReadAsAsync<TResult>(response);
+            var response = await ExecuteAsync(() => PutAsync(requestUri, body)).ConfigureAwait(false);
+            return await ReadAsAsync<TResult>(response).ConfigureAwait(false);
         }
 
         public TResult Put<TResult>(string url, object body, params object[] parameters)
@@ -121,14 +121,14 @@ namespace Hest.RestClient
         public async Task<TResult> PatchAsync<TResult>(string url, object body, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
-            var response = await ExecuteAsync(() => PatchAsync(requestUri, body));
-            return await ReadAsAsync<TResult>(response);
+            var response = await ExecuteAsync(() => PatchAsync(requestUri, body)).ConfigureAwait(false);
+            return await ReadAsAsync<TResult>(response).ConfigureAwait(false);
         }
 
         public async Task<Stream> GetStreamAsync(string url, params object[] parameters)
         {
             var requestUri = string.Format(url, parameters);
-            return await Client.GetStreamAsync(requestUri);
+            return await Client.GetStreamAsync(requestUri).ConfigureAwait(false);
         }
 
         public Stream GetStream(string url, params object[] parameters)
@@ -164,35 +164,35 @@ namespace Hest.RestClient
             var response = await Client.GetAsync(requestUri).ConfigureAwait(false);
             if (response.StatusCode == HttpStatusCode.NotFound)
                 return response;
-            await response.EnsureSuccessStatusCodeAsync();
+            await response.EnsureSuccessStatusCodeAsync().ConfigureAwait(false);
             return response;
         }
 
         private async Task<HttpResponseMessage> PostAsync(string requestUri, object body)
         {
             var response = await Client.PostAsync(requestUri, body, Formatter).ConfigureAwait(false);
-            await response.EnsureSuccessStatusCodeAsync();
+            await response.EnsureSuccessStatusCodeAsync().ConfigureAwait(false);
             return response;
         }
 
         private async Task<HttpResponseMessage> DeleteAsync(string requestUri)
         {
-            var response = await Client.DeleteAsync(requestUri);
-            await response.EnsureSuccessStatusCodeAsync();
+            var response = await Client.DeleteAsync(requestUri).ConfigureAwait(false);
+            await response.EnsureSuccessStatusCodeAsync().ConfigureAwait(false);
             return response;
         }
 
         private async Task<HttpResponseMessage> PutAsync(string requestUri, object body)
         {
-            var response = await Client.PutAsync(requestUri, body, Formatter);
-            await response.EnsureSuccessStatusCodeAsync();
+            var response = await Client.PutAsync(requestUri, body, Formatter).ConfigureAwait(false);
+            await response.EnsureSuccessStatusCodeAsync().ConfigureAwait(false);
             return response;
         }
 
         private async Task<HttpResponseMessage> PatchAsync(string requestUri, object body)
         {
-            var response = await Client.PatchAsync(requestUri, body, Formatter);
-            await response.EnsureSuccessStatusCodeAsync();
+            var response = await Client.PatchAsync(requestUri, body, Formatter).ConfigureAwait(false);
+            await response.EnsureSuccessStatusCodeAsync().ConfigureAwait(false);
             return response;
         }
 
@@ -202,7 +202,8 @@ namespace Hest.RestClient
             if (response.IsSuccessStatusCode)
                 result = await response.Content
                     .ReadAsStringAsync()
-                    .ContinueWith(task => JsonConvert.DeserializeObject<TResult>(task.Result));
+                    .ContinueWith(task => JsonConvert.DeserializeObject<TResult>(task.Result))
+                    .ConfigureAwait(false);
             return result;
         }
 
