@@ -1,9 +1,9 @@
-﻿using System.IO;
-using System.Threading.Tasks;
-using Polly;
-using System;
+﻿using System;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Formatting;
+using System.Threading.Tasks;
+using Polly;
 
 namespace Hest.RestClient
 {
@@ -17,7 +17,9 @@ namespace Hest.RestClient
         Task<TResult> DeleteAsync<TResult>(string url, params object[] parameters);
         void EnableDefaultPolicy();
         TResult Get<TResult>(string url, params object[] parameters);
+        object Get(Type type, string url, params object[] parameters);
         Task<TResult> GetAsync<TResult>(string url, params object[] parameters);
+        Task<object> GetAsync(Type type, string url, params object[] parameters);
         Stream GetStream(string url, params object[] parameters);
         Task<Stream> GetStreamAsync(string url, params object[] parameters);
         TResult Post<TResult>(string url, object body);

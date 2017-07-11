@@ -143,9 +143,25 @@ namespace Hest.RestClient
             GC.SuppressFinalize(this);
         }
 
+        public async Task<object> GetAsync(Type type, string url, params object[] parameters)
+        {
+            var requestUri = string.Format(url, parameters);
+            var response = await ExecuteAsync(() => GetAsync(requestUri)).ConfigureAwait(false);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return null;
+            return await ReadAsAsync(response, type).ConfigureAwait(false);
+        }
+
+        public object Get(Type type, string url, params object[] parameters)
+        {
+            var requestUri = string.Format(url, parameters);
+            var response = Execute(() => GetAsync(requestUri)).Result;
+            return ReadAs(response, type);
+        }
+
         private void InitializeClient()
         {
-            Client = new HttpClient(new HttpClientHandler {Credentials = CredentialCache.DefaultNetworkCredentials});
+            Client = new HttpClient(new HttpClientHandler { Credentials = CredentialCache.DefaultNetworkCredentials });
             Client.DefaultRequestHeaders.Accept.Clear();
             Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
@@ -207,16 +223,32 @@ namespace Hest.RestClient
             return result;
         }
 
+        private static async Task<object> ReadAsAsync(HttpResponseMessage response, Type type)
+        {
+            var result = default(object);
+            if (response.IsSuccessStatusCode)
+                result = await response.Content
+                    .ReadAsStringAsync()
+                    .ContinueWith(task => JsonConvert.DeserializeObject(task.Result, type))
+                    .ConfigureAwait(false);
+            return result;
+        }
+
         private static TResult ReadAs<TResult>(HttpResponseMessage response)
         {
             return ReadAsAsync<TResult>(response).Result;
         }
 
+        private static object ReadAs(HttpResponseMessage response, Type type)
+        {
+            return ReadAsAsync(response, type).Result;
+        }
+
         private async Task<T> ExecuteAsync<T>(Func<Task<T>> function)
         {
             if (Policy == null)
-                return await function.Invoke();
-            return await Policy.ExecuteAsync(function.Invoke);
+                return await function.Invoke().ConfigureAwait(false);
+            return await Policy.ExecuteAsync(function.Invoke).ConfigureAwait(false);
         }
 
         private T Execute<T>(Func<T> function)
